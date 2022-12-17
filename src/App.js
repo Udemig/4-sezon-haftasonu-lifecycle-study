@@ -6,18 +6,44 @@ function App() {
   const [title, setTitle] = useState("");
   const [result, setResult] = useState(false);
   const [resultMessage, setResultMessage] = useState("");
+  const [duzenlemeVarMi, setDuzenlemeVarMi] = useState(false);
+  const [duzenlenecekTodo,setDuzenlenecekTodo]=useState(null)
+  const [duzenlenecekTitle,setDuzenlenecekTitle]=useState("")
 
-  const todoSil=(id)=>{
-    axios.delete(`http://localhost:3004/todos/${id}`)
-    .then((response)=>{
-      setResult(true)
-      setResultMessage("Silme İşlemi Başarılı")
-    })
-    .catch((error)=>{
-      setResult(true)
-      setResultMessage("Silme İşlemi Esnasında Bir Hata Oluştu")
-    })
-  }
+  const todoSil = (id) => {
+    axios
+      .delete(`http://localhost:3004/todos/${id}`)
+      .then((response) => {
+        setResult(true);
+        setResultMessage("Silme İşlemi Başarılı");
+      })
+      .catch((error) => {
+        setResult(true);
+        setResultMessage("Silme İşlemi Esnasında Bir Hata Oluştu");
+      });
+  };
+
+  const changeTodosCompleted = (todo) => {
+    console.log(todo);
+    const updatedTodo = {
+      ...todo,
+      completed: !todo.completed,
+    };
+    axios
+      .put(`http://localhost:3004/todos/${todo.id}`, updatedTodo)
+      .then((response) => {
+        setResult(true);
+        setResultMessage("Todo başarıyla güncellendi");
+      })
+      .catch((error) => {
+        setResult(true);
+        setResultMessage("Todo güncellenirken bir hata oluştu!");
+      });
+  };
+
+  /* 
+    CRUD -> CREATE (POST), READ (GET), UPDATE (PUT/PATCH), DELETE (DELETE)
+  */
 
   useEffect(() => {
     axios
@@ -59,6 +85,30 @@ function App() {
       });
   };
 
+  const todoGuncelleFormunuDenetle=(event)=>{
+    event.preventDefault()
+    //validation
+    if(duzenlenecekTitle === ""){
+      alert("Title boş bırakılamaz")
+      return
+    }
+    // update todo and send server
+    const updatedTodo={
+      ...duzenlenecekTodo,
+      title: duzenlenecekTitle
+    }
+    axios.put(`http://localhost:3004/todos/${duzenlenecekTodo.id}`,updatedTodo)
+    .then((response)=>{
+      setResult(true)
+      setResultMessage("Güncelleme işlemi başarılı")
+      setDuzenlemeVarMi(false)
+    })
+    .catch((error)=>{
+      setResult(true)
+      setResultMessage("Güncelleme işlemi esnasında bir hata oluştu")
+    })
+  }
+
   if (todolar === null) {
     return null;
   }
@@ -79,7 +129,7 @@ function App() {
             alignItems: "center",
             zIndex: 1,
           }}>
-          <div class="alert alert-success" role="alert">
+          <div className="alert alert-success" role="alert">
             <p>{resultMessage}</p>
             <div className="d-flex justify-content-center">
               <button
@@ -107,24 +157,68 @@ function App() {
           </div>
         </form>
       </div>
+      {duzenlemeVarMi === true && (
+        <div className="row my-5">
+          <form onSubmit={todoGuncelleFormunuDenetle}>
+            <div className="input-group mb-3">
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Yapılacak işi girin..."
+                value={duzenlenecekTitle}
+                onChange={(event)=>setDuzenlenecekTitle(event.target.value)}
+              />
+              <button
+                onClick={() => setDuzenlemeVarMi(false)}
+                className="btn btn-danger"
+               >
+                Vazgeç
+              </button>
+              <button className="btn btn-primary" type="submit">
+                Güncelle
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
       {todolar.map((todo) => (
         <div
           key={todo.id}
           className="alert alert-secondary d-flex justify-content-between align-items-center"
           role="alert">
           <div>
-            <h1>{todo.title}</h1>
+            <h1
+              style={{
+                textDecoration:
+                  todo.completed === true ? "line-through" : "none",
+                color: todo.completed === true ? "red" : "black",
+              }}>
+              {todo.title}
+            </h1>
             <p>{new Date(todo.date).toLocaleString()}</p>
           </div>
           <div>
-            <div class="btn-group" role="group" aria-label="Basic example">
-              <button type="button" className="btn btn-sm btn-warning">
+            <div className="btn-group" role="group" aria-label="Basic example">
+              <button
+                onClick={() => {
+                  setDuzenlemeVarMi(true);
+                  setDuzenlenecekTodo(todo)
+                  setDuzenlenecekTitle(todo.title)
+                }}
+                type="button"
+                className="btn btn-sm btn-warning">
                 Düzenle
               </button>
-              <button onClick={()=>todoSil(todo.id)} type="button" className="btn btn-sm btn-danger">
+              <button
+                onClick={() => todoSil(todo.id)}
+                type="button"
+                className="btn btn-sm btn-danger">
                 Sil
               </button>
-              <button type="button" className="btn btn-sm btn-primary">
+              <button
+                onClick={() => changeTodosCompleted(todo)}
+                type="button"
+                className="btn btn-sm btn-primary">
                 {todo.completed === true ? "Yapılmadı" : "Yapıldı"}
               </button>
             </div>
